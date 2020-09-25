@@ -36,10 +36,16 @@ void readClauses( ){
     while (cin >> lit and lit != 0){
       clauses[i].push_back(lit);
       if(lit < 0){
-        apparisons[lit*-2].push_back(i);
+        int len = apparisons[lit*-2].size();
+        if(apparisons[lit*-2][len - 1] != i){
+          apparisons[lit*-2].push_back(i);
+        }
       }
       else {
-        apparisons[lit*2-1].push_back(i);
+        int len = apparisons[lit*2-1].size();
+        if(apparisons[lit*2-1][len - 1] != i){
+          apparisons[lit*2-1].push_back(i);
+        }
       }
     }
   }
@@ -66,14 +72,29 @@ void setLiteralToTrue(int lit){
 bool propagateGivesConflict ( ) {
   while ( indexOfNextLitToPropagate < modelStack.size() ) {
     ++indexOfNextLitToPropagate;
-    for (uint i = 0; i < numClauses; ++i) {
+    int len = 0;
+    int litToPropagate = modelStack[indexOfNextLitToPropagate]
+    if (litToPropagate > 0){
+      len = apparisons[lit*2-1].size();
+    }
+    else {
+      len = apparisons[lit*-2].size();
+    }
+    for (uint i = 0; i < len; ++i) {
       bool someLitTrue = false;
       int numUndefs = 0;
       int lastLitUndef = 0;
-      for (uint k = 0; not someLitTrue and k < clauses[i].size(); ++k){
-	int val = currentValueInModel(clauses[i][k]);
-	if (val == TRUE) someLitTrue = true;
-	else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[i][k]; }
+      int clauseToSearch = 0;
+      if (litToPropagate > 0) {
+        clauseToSearch = apparisons[lit*2-1][i];
+      }
+      else {
+        clauseToSearch = apparisons[lit*-2][i];
+      }
+      for (uint k = 0; not someLitTrue and k < clauses[clauseToSearch].size(); ++k){
+      	int val = currentValueInModel(clauses[i][k]);
+      	if (val == TRUE) someLitTrue = true;
+      	else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[i][k]; }
       }
       if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
       else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
