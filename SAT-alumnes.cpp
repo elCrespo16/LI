@@ -30,22 +30,17 @@ void readClauses( ){
   cin >> aux >> numVars >> numClauses;
   clauses.resize(numClauses);
   apparisons.resize(numVars*2+1);
+  cout << apparisons.size() << endl;
   // Read clauses
   for (uint i = 0; i < numClauses; ++i) {
     int lit;
     while (cin >> lit and lit != 0){
       clauses[i].push_back(lit);
       if(lit < 0){
-        int len = apparisons[lit*-2].size();
-        if(apparisons[lit*-2][len - 1] != i){
-          apparisons[lit*-2].push_back(i);
-        }
+        apparisons[abs(lit*2)].push_back(i);
       }
       else {
-        int len = apparisons[lit*2-1].size();
-        if(apparisons[lit*2-1][len - 1] != i){
-          apparisons[lit*2-1].push_back(i);
-        }
+        apparisons[(lit*2)-1].push_back(i);
       }
     }
   }
@@ -73,24 +68,22 @@ bool propagateGivesConflict ( ) {
   while ( indexOfNextLitToPropagate < modelStack.size() ) {
     ++indexOfNextLitToPropagate;
     int len = 0;
-    int litToPropagate = modelStack[indexOfNextLitToPropagate]
+    int litToPropagate = modelStack[indexOfNextLitToPropagate-1];
+    vector<int>* clausesOnLit;
+    cout << litToPropagate << endl;
     if (litToPropagate > 0){
-      len = apparisons[lit*2-1].size();
+      clausesOnLit = apparisons[litToPropagate*2];
     }
     else {
-      len = apparisons[lit*-2].size();
+      clausesOnLit = apparisons[abs(litToPropagate*2)-1];
     }
+    len = (*clausesOnLit).size();
     for (uint i = 0; i < len; ++i) {
       bool someLitTrue = false;
       int numUndefs = 0;
       int lastLitUndef = 0;
       int clauseToSearch = 0;
-      if (litToPropagate > 0) {
-        clauseToSearch = apparisons[lit*2-1][i];
-      }
-      else {
-        clauseToSearch = apparisons[lit*-2][i];
-      }
+      clauseToSearch = (*clausesOnLit)[i];
       for (uint k = 0; not someLitTrue and k < clauses[clauseToSearch].size(); ++k){
       	int val = currentValueInModel(clauses[i][k]);
       	if (val == TRUE) someLitTrue = true;
