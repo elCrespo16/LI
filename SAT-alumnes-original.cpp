@@ -54,6 +54,10 @@ void setLiteralToTrue(int lit){
 
 
 bool propagateGivesConflict ( ) {
+  for(int i = 0; i < modelStack.size(); ++i) {
+      cout << "i " << i << " " << modelStack[i] << endl;
+    }
+  cout << "fin it" << endl;
   while ( indexOfNextLitToPropagate < modelStack.size() ) {
     ++indexOfNextLitToPropagate;
     for (uint i = 0; i < numClauses; ++i) {
@@ -66,7 +70,10 @@ bool propagateGivesConflict ( ) {
 	       else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[i][k]; }
       }
       if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
-      else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef);
+      else if (not someLitTrue and numUndefs == 1){
+        setLiteralToTrue(lastLitUndef);
+        cout << "Lit propagated " << lastLitUndef << endl;
+      } 
     }
   }
   return false;
