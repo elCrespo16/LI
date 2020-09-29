@@ -27,7 +27,7 @@ do
     show_elapsed_time
     echo "misat:"
     start_measuring_time
-    ./misat < $f
+    ./misat.exe < $f
     stop_measuring_time
     show_elapsed_time
 done

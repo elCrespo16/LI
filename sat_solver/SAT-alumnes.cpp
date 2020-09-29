@@ -17,6 +17,15 @@ vector<int> modelStack;
 uint indexOfNextLitToPropagate;
 uint decisionLevel;
 
+class myCompare {
+  public:
+    bool operator() (const pair<int,int>& a, const pair<int,int>& b){
+      return a.second < b.second;
+    }
+};
+
+priority_queue< pair <int,int>,vector< pair<int,int> >, myCompare > orden;
+
 vector<pair<vector<int>, vector<int> > > apparisons;
 vector<int> litOrder;
 
@@ -50,8 +59,9 @@ void readClauses( ){
       }
     }
   }
-  for(int i = 0;i < numVars;++i){
-
+  for(int i = 1;i < apparisons.size();++i){
+    orden.push(make_pair(i,apparisons[i].first.size()));
+    orden.push(make_pair(-i,apparisons[i].second.size()));
   }
 /*   for(int i = 0; i < clauses.size();++i){
 		cout << "Clause " << i << endl;
@@ -147,6 +157,8 @@ void backtrack(){
   while (modelStack[i] != 0){ // 0 is the DL mark
     lit = modelStack[i];
     model[abs(lit)] = UNDEF;
+    if(lit > 0)orden.push(make_pair(lit,apparisons[abs(lit)].first.size()));
+    else orden.push(make_pair(lit,apparisons[abs(lit)].second.size()));
     modelStack.pop_back();
     --i;
   }
@@ -160,12 +172,15 @@ void backtrack(){
 
 // Heuristic for finding the next decision literal:
 int getNextDecisionLiteral(){
-  int max = 0;
+  while(model[abs(orden.top().first)] != UNDEF) orden.pop();
+  if(not orden.empty())return orden.top().second;
+  else return 0;
+  /* int max = 0;
   for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
     if (model[i] == UNDEF) {
       if(max_value(apparisons[i].second.size(), apparisons[i].first.size()) > max) max = i;
     }
-  return max; // reurns 0 when all literals are defined
+  return max; */ // reurns 0 when all literals are defined
   /* for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
     if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
   return 0; // reurns 0 when all literals are defined */
