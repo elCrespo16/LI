@@ -17,21 +17,19 @@ vector<int> modelStack;
 uint indexOfNextLitToPropagate;
 uint decisionLevel;
 
-class myCompare {
-  public:
-    bool operator() (const pair<int,int>& a, const pair<int,int>& b){
-      return a.second < b.second;
-    }
-};
-
-priority_queue< pair <int,int>,vector< pair<int,int> >, myCompare > orden;
-
 vector<pair<vector<int>, vector<int> > > apparisons;
-vector<int> litOrder;
+vector<pair<int,int> > varOrder;
+vector<int> conflicts;
+uint nConflicts;
+
 
 int max_value(int a, int b) {
   if(a > b) return a;
   return b;
+}
+
+bool comp (pair<int,int> a, pair<int,int> b){
+  return a.second > b.second;
 }
 
 void readClauses( ){
@@ -46,6 +44,8 @@ void readClauses( ){
   cin >> aux >> numVars >> numClauses;
   clauses.resize(numClauses);
   apparisons.resize(numVars + 1);
+  varOrder.resize(numVars);
+  conflicts.resize(numVars + 1,0);
   // Read clauses
   for (uint i = 0; i < numClauses; ++i) {
     int lit;
@@ -59,10 +59,18 @@ void readClauses( ){
       }
     }
   }
+  
   for(int i = 1;i < apparisons.size();++i){
-    orden.push(make_pair(i,apparisons[i].first.size()));
-    orden.push(make_pair(-i,apparisons[i].second.size()));
+    varOrder[i-1].first = i;
+    varOrder[i-1].second = apparisons[i].first.size() + apparisons[i].second.size();
   }
+  sort(varOrder.begin(),varOrder.end(),comp);
+  /*cout << "variables ordenadas por apariciones" << endl;
+   for(int i = 0;i < varOrder.size();++i){
+    cout << i << " " <<varOrder[i].first << " apariciones " << varOrder[i].second << " ";
+  } */
+  
+
 /*   for(int i = 0; i < clauses.size();++i){
 		cout << "Clause " << i << endl;
 		for(int j = 0;j < clauses[i].size();++j){
@@ -139,7 +147,13 @@ bool propagateGivesConflict ( ) {
       	if (val == TRUE) someLitTrue = true;
       	else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[clauseToSearch][k]; }
       }
-      if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
+      if (not someLitTrue and numUndefs == 0){
+        for(uint k = 0; k < clauses[clauseToSearch].size(); ++k){
+          ++conflicts[abs(clauses[clauseToSearch][k])];
+          ++nConflicts;
+        }
+        return true; // conflict! all lits false
+      } 
       else if (not someLitTrue and numUndefs == 1){
         setLiteralToTrue(lastLitUndef);
         //cout << "Lit propagated " << lastLitUndef << endl;
@@ -150,6 +164,19 @@ bool propagateGivesConflict ( ) {
   return false;
 }
 
+int findMaxConflicts (){
+  int max = 0;
+  for(int i = 1;i < conflicts.size();++i){
+    if(model[i] == UNDEF and conflicts[max] <= conflicts[i])max = i;
+  }
+  return max;
+}
+
+void splitTheDifference() {
+  for(int i = 1;i < conflicts.size();++i){
+    conflicts[i] = conflicts[i] / 2;
+  }
+}
 
 void backtrack(){
   uint i = modelStack.size() -1;
@@ -157,8 +184,6 @@ void backtrack(){
   while (modelStack[i] != 0){ // 0 is the DL mark
     lit = modelStack[i];
     model[abs(lit)] = UNDEF;
-    if(lit > 0)orden.push(make_pair(lit,apparisons[abs(lit)].first.size()));
-    else orden.push(make_pair(lit,apparisons[abs(lit)].second.size()));
     modelStack.pop_back();
     --i;
   }
@@ -169,21 +194,37 @@ void backtrack(){
   setLiteralToTrue(-lit);  // reverse last decision
 }
 
+int getMaxVarInApparisons(){
+  for(int i = 0;i < varOrder.size();++i){
+    if(model[varOrder[i].first] == UNDEF) return varOrder[i].first;
+  }
+  return 0;
+}
 
 // Heuristic for finding the next decision literal:
 int getNextDecisionLiteral(){
-  while(model[abs(orden.top().first)] != UNDEF) orden.pop();
+  /**/
+
+  /*while(model[abs(orden.top().first)] != UNDEF) orden.pop();
   if(not orden.empty())return orden.top().second;
-  else return 0;
+  else return 0;*/
+  if(nConflicts > 300){
+    if(nConflicts % 400 == 0) splitTheDifference();
+    return findMaxConflicts();
+  }
+  else {
+    return getMaxVarInApparisons();
+  }
+  //return getMaxVarInApparisons();
   /* int max = 0;
   for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
     if (model[i] == UNDEF) {
       if(max_value(apparisons[i].second.size(), apparisons[i].first.size()) > max) max = i;
     }
   return max; */ // reurns 0 when all literals are defined
-  /* for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
+   /* for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
     if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
-  return 0; // reurns 0 when all literals are defined */
+  return 0; // reurns 0 when all literals are defined  */
 }
 
 void checkmodel(){
@@ -192,7 +233,7 @@ void checkmodel(){
     for (uint j = 0; not someTrue and j < clauses[i].size(); ++j)
       someTrue = (currentValueInModel(clauses[i][j]) == TRUE);
     if (not someTrue) {
-      cout << "Error in model, clause is not satisfied:";
+      cout << "Error in model, clause is not satisfied:" << i;
       /* for (uint j = 0; j < clauses[i].size(); ++j) cout << clauses[i][j] << " ";
       cout << endl; */
       /* cout << "model" << endl;
@@ -202,7 +243,6 @@ void checkmodel(){
       exit(1);
     }
   }
-
 }
 
 int main(){
@@ -210,6 +250,7 @@ int main(){
   model.resize(numVars+1,UNDEF);
   indexOfNextLitToPropagate = 0;
   decisionLevel = 0;
+  nConflicts = 0;
 
   // Take care of initial unit clauses, if any
   for (uint i = 0; i < numClauses; ++i)
