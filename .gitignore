@@ -1,2 +1,5 @@
-.exe
-salPicoSAT
+sat_solver/*.exe
+sat_solver/salPicoSAT
+cmake-build-debug/
+CMakeLists.txt
+.idea

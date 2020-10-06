@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <vector>
+#include <queue>
 
 using namespace std;
 
@@ -19,12 +20,19 @@ uint decisionLevel;
 uint numberDecisions = 0;
 uint numberPropagations = 0;
 
+class myComp {
+public:
+    bool operator() (const pair<int,int>& a, const pair<int,int>& b) const {
+        return a.second > b.second;
+    }
+};
 
 vector<pair<vector<int>, vector<int> > > apparisons;
 vector<pair<int, int> > varOrder;
 vector<int> conflicts;
 uint nConflicts;
 vector<pair<int,int> > stateOfClauses;
+priority_queue<pair<int,int>, vector<pair<int,int> >, myComp > propagationOrder;
 
 
 
@@ -114,6 +122,14 @@ void setStatusOfClauses(int lit) {
     }
 }
 
+int getLiteralImportance(int lit){
+    if (nConflicts > 300) {
+        return conflicts[abs(lit)];
+    }
+    if (lit > 0) return apparisons[lit].first.size();
+    return apparisons[-lit].second.size();
+}
+
 void setLiteralToTrue(int lit) {
     modelStack.push_back(lit);
     if (lit > 0) {
@@ -124,8 +140,33 @@ void setLiteralToTrue(int lit) {
     setStatusOfClauses(lit);
 }
 
+void setLiteralToTrueQueue(int lit) {
+    propagationOrder.emplace(make_pair(lit,getLiteralImportance(lit)));
+    if (lit > 0) {
+        model[lit] = TRUE;
+    } else {
+        model[-lit] = FALSE;
+    }
+    setStatusOfClauses(lit);
+}
+
 bool isClausePropagable(int clauseToSearch) {
     return stateOfClauses[clauseToSearch].first == 0 and stateOfClauses[clauseToSearch].second == 2;
+}
+
+void clearPropagationQueue (){
+    while(not propagationOrder.empty()){
+        undoStatusOfClausules(propagationOrder.top().first);
+        model[abs(propagationOrder.top().first)] = UNDEF;
+        propagationOrder.pop();
+    }
+}
+
+void setPropagationsInModelStack(){
+    while(not propagationOrder.empty()){
+        modelStack.push_back(propagationOrder.top().first);
+        propagationOrder.pop();
+    }
 }
 
 bool propagateGivesConflict() {
@@ -142,7 +183,7 @@ bool propagateGivesConflict() {
                 for (uint k = 0; k < 3; ++k) {
                     int val = currentValueInModel(clauses[clauseToSearch][k]);
                     if (val == UNDEF) {
-                        setLiteralToTrue(clauses[clauseToSearch][k]);
+                        setLiteralToTrueQueue(clauses[clauseToSearch][k]);
                         ++numberPropagations;
                         break;
                     }
@@ -153,9 +194,11 @@ bool propagateGivesConflict() {
                     ++conflicts[abs(clauses[clauseToSearch][k])];
                 }
                 nConflicts += 3;
+                clearPropagationQueue();
                 return true; // conflict! all lits false
             }
         }
+        setPropagationsInModelStack();
     }
     return false;
 }
