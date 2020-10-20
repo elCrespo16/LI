@@ -34,8 +34,6 @@ uint nConflicts;
 vector<pair<int,int> > stateOfClauses;
 priority_queue<pair<int,int>, vector<pair<int,int> >, myComp > propagationOrder;
 
-
-
 int max_value(int a, int b) {
     if (a > b) return a;
     return b;
