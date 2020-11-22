@@ -1,0 +1,4 @@
+
+Optimización usando un SAT solver.
+Siguiendo el ejemplo de minColoring, resuelve basket y factory.
+Para factory, se adjuntan tres ejemplos de entrada. 
